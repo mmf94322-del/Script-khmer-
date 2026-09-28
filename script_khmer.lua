@@ -1,114 +1,119 @@
--- LocalScript: Complete Custom Hub (No Key Required)
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local SAE = "https://raw.githubusercontent.com/tienkhanh1/Chilli-Hub-Script/refs/heads/main/StealAnEgg"
+local RAP = "https://raw.githubusercontent.com/tienkhanh1/Chilli-Hub-Script/refs/heads/main/RideAPet"
+local JFA = "https://raw.githubusercontent.com/tienkhanh1/Chilli-Hub-Script/refs/heads/main/JumpForAnimals"
+local SAB = "https://raw.githubusercontent.com/tienkhanh1/spicy/refs/heads/main/Steal-a-Brainrot"
 
--- 1. បង្កើត ScreenGui Main Container
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CustomHubUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
+local byGameId = {
+    [10563114921] = SAE,
+    [10035204815] = RAP,
+    [10690360998] = JFA,
+    [7709344486] = SAB,
+}
 
--- 2. បង្កើត Main Frame (ផ្ទាំង Menu)
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 320, 0, 260)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -130)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true -- អាចអូសទីតាំងបាន
-mainFrame.Parent = screenGui
+local byPlaceId = {
+    [107778070777162] = SAE,
+    [124216119978534] = RAP,
+    [126870639873289] = JFA,
+    [109983668079237] = SAB,
+}
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = mainFrame
-
--- 3. បង្កើត Title Bar
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 40)
-titleLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-titleLabel.Text = "  My Utility Hub"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.TextSize = 16
-titleLabel.Font = Enum.Font.SourceSansBold
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = mainFrame
-
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 10)
-titleCorner.Parent = titleLabel
-
--- Function សម្រាប់បង្កើត Button ងាយស្រួល
-local function createButton(text, positionY, color)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0.85, 0, 0, 38)
-    button.Position = UDim2.new(0.075, 0, 0, positionY)
-    button.BackgroundColor3 = color
-    button.Text = text
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 15
-    button.Font = Enum.Font.SourceSans
-    button.Parent = mainFrame
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = button
-    
-    return button
+local gameId = game.GameId
+while gameId == 0 and game.PlaceId == 0 do
+    task.wait()
+    gameId = game.GameId
 end
 
--- 4. ប៊ូតុង WalkSpeed
-local speedButton = createButton("Toggle Speed (32)", 55, Color3.fromRGB(0, 120, 215))
-local speedActive = false
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
-speedButton.MouseButton1Click:Connect(function()
-    local character = player.Character
-    if character and character:FindFirstChild("Humanoid") then
-        speedActive = not speedActive
-        if speedActive then
-            character.Humanoid.WalkSpeed = 32
-            speedButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-        else
-            character.Humanoid.WalkSpeed = 16
-            speedButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+local LocalPlayer = Players.LocalPlayer
+local flySpeed = 100
+local flying = false
+
+local function startFly()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    
+    local bv = Instance.new("BodyVelocity")
+    bv.Name = "FlyVelocity"
+    bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.Parent = hrp
+
+    local bg = Instance.new("BodyGyro")
+    bg.Name = "FlyGyro"
+    bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    bg.CFrame = hrp.CFrame
+    bg.Parent = hrp
+
+    flying = true
+
+    task.spawn(function()
+        while flying and char and hrp and hrp.Parent do
+            local camera = workspace.CurrentCamera
+            local moveDir = Vector3.new()
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveDir = moveDir + camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveDir = moveDir - camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveDir = moveDir - camera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveDir = moveDir + camera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                moveDir = moveDir + Vector3.new(0, 1, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                moveDir = moveDir - Vector3.new(0, 1, 0)
+            end
+
+            if moveDir.Magnitude > 0 then
+                moveDir = moveDir.Unit
+            end
+
+            bv.Velocity = moveDir * flySpeed
+            bg.CFrame = camera.CFrame
+            RunService.RenderStepped:Wait()
         end
+        
+        bv:Destroy()
+        bg:Destroy()
+    end)
+end
+
+local function toggleFly()
+    flying = not flying
+    if flying then
+        startFly()
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.E then
+        toggleFly()
     end
 end)
 
--- 5. ប៊ូតុង JumpPower
-local jumpButton = createButton("Toggle High Jump (100)", 105, Color3.fromRGB(0, 120, 215))
-local jumpActive = false
+local url = byGameId[gameId] or byPlaceId[game.PlaceId]
+if not url then
+    return
+end
 
-jumpButton.MouseButton1Click:Connect(function()
-    local character = player.Character
-    if character and character:FindFirstChild("Humanoid") then
-        jumpActive = not jumpActive
-        character.Humanoid.UseJumpPower = true
-        if jumpActive then
-            character.Humanoid.JumpPower = 100
-            jumpButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-        else
-            character.Humanoid.JumpPower = 50
-            jumpButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+for _ = 1, 3 do
+    local ok, source = pcall(game.HttpGet, game, url)
+    if ok and type(source) == "string" and source ~= "" then
+        local chunk = loadstring(source)
+        if chunk then
+            chunk()
         end
+        return
     end
-end)
-
--- 6. ប៊ូតុង Teleport ទៅ Spawn
-local teleportButton = createButton("Teleport ទៅ Center (0, 10, 0)", 155, Color3.fromRGB(140, 50, 255))
-
-teleportButton.MouseButton1Click:Connect(function()
-    local character = player.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        -- ផ្លាស់ប្តូរទីតាំងតួអង្គ
-        character.HumanoidRootPart.CFrame = CFrame.new(0, 10, 0)
-    end
-end)
-
--- 7. ប៊ូតុង បិទ/បើក UI (Hide/Show)
-local toggleButton = createButton("បិទ/បើក Menu", 205, Color3.fromRGB(200, 60, 60))
-
-toggleButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
+    task.wait(0.5)
+end
